@@ -1,0 +1,27 @@
+{
+  "name": "greg",
+  "version": "1.0.0",
+  "description": "Telegram bot, invoce generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qelphybox/greg.git"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "invoicegenerator"
+  ],
+  "author": "Kirill&manylovv",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qelphybox/greg/issues"
+  },
+  "homepage": "https://github.com/qelphybox/greg#readme",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.58.0"
+  }
+}
