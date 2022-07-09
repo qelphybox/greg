@@ -17,10 +17,11 @@ axios
     //   port: 8080,
     // },
     headers: _headers,
+    responseType: "stream"
   })
   .then((res) => {
     console.log(res.data)
-    fs.writeFileSync('message2.pdf', res.data)
+    res.data.pipe(fs.createWriteStream("message2.pdf"));
     console.log('file has been created')
   })
   .catch((err) => {
