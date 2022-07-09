@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/qelphybox/greg.git"
@@ -23,6 +24,11 @@
   },
   "homepage": "https://github.com/qelphybox/greg#readme",
   "dependencies": {
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.1",
     "node-telegram-bot-api": "^0.58.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
   }
 }
