@@ -2,27 +2,32 @@ class Invoice {
   constructor(invoiceData) {
     this.questions = invoiceData.map((elem) => elem[0])
     this.messages = invoiceData.map((elem) => elem[1])
-    this.opts = invoiceData.map((elem) => elem[2])
+    this.lenght = this.questions.reduce((acc) => acc + 1, 0)
     this.answers = []
     this.counter = 0
   }
 
   isInvoiceMessage(message) {
-    if (
-      (this.getCounter() === 0 && message === 'New invoice') ||
-      this.getCounter() > 0
-    ) {
+    if ((this.counter === 0 && message === 'New invoice') || this.counter > 0) {
       return true
     }
 
     return false
   }
 
-  getCounter() {
-    return this.counter
+  getState() {
+    if (this.counter === 0) {
+      return 'start'
+    }
+
+    if (this.counter >= this.lenght) {
+      return 'finish'
+    }
+
+    return 'process'
   }
 
-  increaseCount() {
+  nextStep() {
     this.counter += 1
   }
 
@@ -39,45 +44,48 @@ class Invoice {
   }
 
   getMessage() {
-    const counter = this.getCounter()
-    return this.messages[counter]
+    return this.messages[this.counter]
   }
 
-  formatAnswer(message) {
-    const currentIndex = this.questions.indexOf(this.question)
-    const currentQuestion = this.questions[currentIndex - 1]
+  formatAnswers(answers) {
+    const entries = Object.entries(answers)
 
-    switch (currentQuestion) {
-      case 'number': {
-        return Number(message)
+    const processedAnswers = entries.map(([key, value]) => {
+      switch (key) {
+        case 'number': {
+          return [key, Number(value)]
+        }
+
+        case 'items': {
+          const result = {}
+          const arr = value.split(',')
+          arr.map((item, i) => {
+            const trimmedItem = item.trim()
+            switch (i) {
+              case 0:
+                result.name = trimmedItem
+                break
+              case 1:
+                result.quantity = Number(trimmedItem)
+                break
+              case 2:
+                result.unit_cost = Number(trimmedItem)
+            }
+          })
+
+          return [key, [result]]
+        }
+
+        case 'currency': {
+          return [key, value.toUpperCase()]
+        }
+
+        default:
+          return [key, value]
       }
+    })
 
-      case 'items': {
-        const result = {}
-        const arr = message.split(',')
-        arr.map((item, i) => {
-          switch (i) {
-            case 0:
-              result.name = item
-              break
-            case 1:
-              result.quantity = Number(item)
-              break
-            case 2:
-              result.unit_cost = Number(item)
-          }
-        })
-
-        return [result]
-      }
-
-      case 'currency': {
-        return message.toUpperCase()
-      }
-
-      default:
-        return message
-    }
+    return Object.fromEntries(processedAnswers)
   }
 
   stopPoll() {

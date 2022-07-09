@@ -3,24 +3,29 @@ import axios from 'axios'
 import * as dotenv from 'dotenv'
 import TelegramBot from 'node-telegram-bot-api'
 import Invoice from './src/Invoice.js'
+import { getRandomFileName } from './utils/utils.js'
+import { log } from 'console'
 
 dotenv.config()
 
 const token = process.env.TG_BOT_TOKEN
 
-const bot = new TelegramBot(token, { polling: true })
+export const bot = new TelegramBot(token, { polling: true })
 
 const newInvoice = new Invoice([
   ['from', 'Enter the name of your company'],
   ['to', "Enter the name of your Client's company"],
   // ['logo', 'Enter the url of your logo'],
-  // ['date', 'Enter the date of your invoice'],
+  [
+    'date',
+    'Enter the date of your invoice\nExample: 2020-01-29 / Jan 29, 2020',
+  ],
   // ['due_date', 'Enter the due date of your invoice'],
   // ['number', 'Enter the number of your invoice'],
-  // [
-  //   'items',
-  //   'Enter the description of the item\nFormat: <name>, <quantity>, <unit cost>',
-  // ],
+  [
+    'items',
+    'Enter the description of the item\nFormat: <item name>, <quantity>, unit_cost',
+  ],
   // ['currency', 'Enter the currency of your invoice\nExample: USD / EUR'],
   // ['notes', 'Enter your notes'],
   // ['terms', 'Enter the terms and conditions'],
@@ -29,12 +34,12 @@ const newInvoice = new Invoice([
 const commands = ['/start']
 
 const getTypeOfMessage = (message) => {
-  if (commands.includes(message)) {
-    return 'command'
-  }
-
   if (newInvoice.isInvoiceMessage(message)) {
     return 'new invoice'
+  }
+
+  if (commands.includes(message)) {
+    return 'command'
   }
 }
 
@@ -45,7 +50,6 @@ bot.on('message', (msg) => {
 
   switch (typeOfMessage) {
     case 'command': {
-      newInvoice.stopPoll()
       const opts = {
         reply_markup: {
           keyboard: [['New invoice']],
@@ -60,22 +64,56 @@ bot.on('message', (msg) => {
     }
 
     case 'new invoice': {
-      if (newInvoice.getCounter() > 0) {
+      const state = newInvoice.getState()
+      if (state !== 'start') {
         newInvoice.setAnswer(messageText)
       }
 
-      if (newInvoice.getCounter() > newInvoice.questions.lenght) {
-        console.log('i am almost done')
-        const data = newInvoice.getData()
-        // bot.sendMessage(chatId, 'Preparing your invoice...')
-        console.log(data)
+      if (state === 'start' || state === 'process') {
+        const message = newInvoice.getMessage()
+        bot.sendMessage(chatId, message, {
+          reply_markup: { remove_keyboard: true },
+        })
+
+        newInvoice.nextStep()
       }
 
-      const message = newInvoice.getMessage()
-      bot.sendMessage(chatId, message, {
-        reply_markup: { remove_keyboard: true },
-      })
-      newInvoice.increaseCount()
+      if (state === 'finish') {
+        bot.sendMessage(chatId, '*Preparing your invoice...*', {
+          parse_mode: 'Markdown',
+        })
+
+        const data = newInvoice.getData()
+        const formattedData = newInvoice.formatAnswers(data)
+        newInvoice.stopPoll()
+
+        const filename = getRandomFileName('Invoice', 'pdf')
+
+        axios
+          .post('https://invoice-generator.com', formattedData, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            responseType: 'stream',
+          })
+          .then((response) => {
+            response.data
+              .pipe(fs.createWriteStream(filename))
+              .on('finish', () => {
+                const stream = fs.createReadStream(filename)
+                bot
+                  .sendDocument(chatId, stream)
+                  .then(() => {
+                    fs.unlink(filename, (err) => {
+                      if (err) throw err
+                  })
+                })
+              })
+          })
+          .catch((err) => {
+            console.error(err)
+          })
+      }
 
       break
     }
