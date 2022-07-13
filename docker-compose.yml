@@ -1,0 +1,23 @@
+version: '3.8'
+
+volumes:
+  pgdata:
+
+services:
+  bot:
+    image: node:16.16.0
+    volumes:
+      - .:/usr/app
+    working_dir: /usr/app
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13.3-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
