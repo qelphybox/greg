@@ -1,16 +1,11 @@
-import * as fs from 'fs'
-import axios from 'axios'
 import * as dotenv from 'dotenv'
 import TelegramBot from 'node-telegram-bot-api'
 import Invoice from './src/Invoice.js'
-import { getRandomFileName } from './utils/utils.js'
-import { log } from 'console'
+import sendInvoiceDocument from './src/sendInvoiceDocument.js'
 
 dotenv.config()
-
 const token = process.env.TG_BOT_TOKEN
-
-export const bot = new TelegramBot(token, { polling: true })
+const bot = new TelegramBot(token, { polling: true })
 
 const newInvoice = new Invoice([
   ['from', 'Enter the name of your company'],
@@ -55,6 +50,7 @@ bot.on('message', (msg) => {
           keyboard: [['New invoice']],
         },
       }
+
       const msg =
         'Greg is telegram bot, that allows you to generate invoices easy and fast.\nClick "New invoice" to start!'
 
@@ -85,35 +81,14 @@ bot.on('message', (msg) => {
 
         const data = newInvoice.getData()
         const formattedData = newInvoice.formatAnswers(data)
-        newInvoice.stopPoll()
-
-        const filename = getRandomFileName('Invoice', 'pdf')
-
-        axios
-          .post('https://invoice-generator.com', formattedData, {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            responseType: 'stream',
-          })
-          .then((response) => {
-            response.data
-              .pipe(fs.createWriteStream(filename))
-              .on('finish', () => {
-                const stream = fs.createReadStream(filename)
-                bot
-                  .sendDocument(chatId, stream)
-                  .then(() => {
-                    fs.unlink(filename, (err) => {
-                      if (err) throw err
-                  })
-                })
-              })
-          })
-          .catch((err) => {
-            console.error(err)
-          })
+        sendInvoiceDocument(
+          { bot, chatId },
+          'https://invoice-generator.com',
+          formattedData
+        )
       }
+
+      newInvoice.stopPoll()
 
       break
     }
