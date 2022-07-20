@@ -1,100 +1,139 @@
 import * as dotenv from 'dotenv'
+import axios from 'axios'
 import TelegramBot from 'node-telegram-bot-api'
-import Invoice from './src/Invoice.js'
-import sendInvoiceDocument from './src/sendInvoiceDocument.js'
+import StorageBuilder from './src/Store.js'
+import { getRandomFileName } from './utils/utils.js'
+import { KEYWORDS, QUESTIONS } from './utils/values.js'
 
 dotenv.config()
 const token = process.env.TG_BOT_TOKEN
 const bot = new TelegramBot(token, { polling: true })
 
-const newInvoice = new Invoice([
-  ['from', 'Enter the name of your company'],
-  ['to', "Enter the name of your Client's company"],
-  // ['logo', 'Enter the url of your logo'],
-  [
-    'date',
-    'Enter the date of your invoice\nExample: 2020-01-29 / Jan 29, 2020',
-  ],
-  // ['due_date', 'Enter the due date of your invoice'],
-  // ['number', 'Enter the number of your invoice'],
-  [
-    'items',
-    'Enter the description of the item\nFormat: <item name>, <quantity>, unit_cost',
-  ],
-  // ['currency', 'Enter the currency of your invoice\nExample: USD / EUR'],
-  // ['notes', 'Enter your notes'],
-  // ['terms', 'Enter the terms and conditions'],
-])
+const store = new StorageBuilder()
 
-const commands = ['/start']
+const format = (messageText, keyword) => {
+  switch (keyword) {
+    case 'from':
+    case 'to':
+    case 'logo':
+    case 'date':
+    case 'due_date':
+    case 'notes':
+    case 'terms': {
+      return messageText.toString()
+    }
 
-const getTypeOfMessage = (message) => {
-  if (newInvoice.isInvoiceMessage(message)) {
-    return 'new invoice'
+    case 'number': {
+      return +messageText
+    }
+
+    case 'currency': {
+      return messageText.toUpperCase()
+    }
+
+    case 'items': {
+      const items = messageText.split(',')
+      const trimmedItems = items.map((item) => item.trim())
+      // "items":[{"name":"Starter plan","quantity":1,"unit_cost":99}]
+      return [
+        {
+          name: trimmedItems[0],
+          quantity: trimmedItems[1],
+          unit_cost: trimmedItems[2],
+        },
+      ]
+    }
+
+    default: {
+      throw new Error(`Unknown keyword: ${keyword}`)
+    }
   }
+}
 
-  if (commands.includes(message)) {
-    return 'command'
+const send = (chatId, message, opts = {}) => {
+  bot.sendMessage(chatId, message, opts)
+}
+
+const sendInvoiceDocument = async (chatId, apiUrl, InvoiceData) => {
+  try {
+    const fileOptions = {
+      filename: getRandomFileName('Invoice', 'pdf'),
+      contentType: 'application/pdf',
+    }
+
+    const options = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      responseType: 'stream',
+    }
+
+    const response = await axios.post(apiUrl, InvoiceData, options)
+
+    bot.sendDocument(chatId, response.data, {}, fileOptions)
+  } catch (err) {
+    console.error(err)
+    throw err
   }
 }
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id
   const messageText = msg.text.toString().trim()
-  const typeOfMessage = getTypeOfMessage(messageText)
 
-  switch (typeOfMessage) {
-    case 'command': {
-      const opts = {
-        reply_markup: {
-          keyboard: [['New invoice']],
-        },
+  if (!store.hasUser(chatId)) {
+    store.initUser(chatId)
+  }
+
+  const globalState = store.getGlobalState(chatId)
+
+  switch (globalState) {
+    case 'menu': {
+      if (messageText === '/start') {
+        send(chatId, 'Hi there!', {
+          reply_markup: {
+            one_time_keyboard: true,
+            keyboard: [['New invoice']],
+          },
+        })
       }
 
-      const msg =
-        'Greg is telegram bot, that allows you to generate invoices easy and fast.\nClick "New invoice" to start!'
+      if (messageText === 'New invoice') {
+        store.setGlobalState(chatId, 'newInvoice')
 
-      bot.sendMessage(chatId, msg, opts)
+        store.initNewInvoice(chatId, KEYWORDS, QUESTIONS)
+        const question = store.getInvoiceQuestion(chatId)
+        store.goToNextQuestion(chatId)
+
+        send(chatId, question)
+      }
 
       break
     }
 
-    case 'new invoice': {
-      const state = newInvoice.getState()
-      if (state !== 'start') {
-        newInvoice.setAnswer(messageText)
-      }
+    case 'newInvoice': {
+      const currentKeyword = store.getInvoiceKeyword(chatId)
+      const formattedAnswer = format(messageText, currentKeyword)
+      store.setAnswer(chatId, formattedAnswer)
 
-      if (state === 'start' || state === 'process') {
-        const message = newInvoice.getMessage()
-        bot.sendMessage(chatId, message, {
-          reply_markup: { remove_keyboard: true },
-        })
+      if (!store.isLastAnswer(chatId)) {
+        const question = store.getInvoiceQuestion(chatId)
+        store.goToNextQuestion(chatId)
 
-        newInvoice.nextStep()
-      }
-
-      if (state === 'finish') {
-        bot.sendMessage(chatId, '*Preparing your invoice...*', {
-          parse_mode: 'Markdown',
-        })
-
-        const data = newInvoice.getData()
-        const formattedData = newInvoice.formatAnswers(data)
+        send(chatId, question)
+      } else {
+        send(chatId, '*Preparing your invoice...*', { parse_mode: 'Markdown' })
+        const invoiceData = store.getInvoiceData(chatId)
         sendInvoiceDocument(
-          { bot, chatId },
+          chatId,
           'https://invoice-generator.com',
-          formattedData
+          invoiceData
         )
+
+        store.setGlobalState(chatId, 'menu')
       }
 
-      newInvoice.stopPoll()
-
       break
-    }
-
-    default: {
-      bot.sendMessage(chatId, 'Sorry, I cannot understand your message')
     }
   }
 })
