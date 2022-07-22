@@ -1,23 +1,8 @@
-const changeMenu = (chat, _message) => chat;
+import states from './states'
 
-const changeMapping = {
-    menu: changeMenu
-}
-
-const respondMenu = (chat, bot) => {
-    const opts = {
-        reply_markup: {
-          one_time_keyboard: true,
-          keyboard: [['New invoice']],
-        },
-      }
-      const message = 'Hi there!'
-    bot.sendMessage(chat.telegramChatId, message, opts)
-}
-
-const respondMapping = {
-    menu: respondMenu
-}
+const stateEntries = Object.entries(states)
+const changeMapping = stateEntries.reduce((acc, [name, { change }]) => ({ ...acc, [name]: change }), {})
+const respondMapping = stateEntries.reduce((acc, [name, { respond }]) => ({ ...acc, [name]: respond }), {})
 
 export const dispatch = (chat, message) => {
     const handler = changeMapping[chat.state]
