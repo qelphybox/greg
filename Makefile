@@ -1,8 +1,8 @@
 up:
-	docker-compose up -d
+	docker compose up -d
 
 bind:
-	docker-compose exec bot bash
+	docker compose exec bot bash
 
 start: up bind
 
