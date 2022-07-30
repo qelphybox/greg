@@ -1,19 +1,7 @@
-import cloneDeep from 'lodash.clonedeep'
-import Invoice from '../Invoice'
+import Invoice from '../models/Invoice'
+import { invoiceResponder } from './invoice'
 
-const change = (oldState, message) => {
-  if (message.text === 'New invoice') {
-    const newState = cloneDeep(oldState)
-    newState.state = 'invoice'
-    newState.currentQuestion = 0
-    newState.invoice = new Invoice()
-    return newState
-  }
-
-  return oldState
-}
-
-const respond = (chat, bot) => {
+export const menuResponder = (bot, chat) => {
   const opts = {
     reply_markup: {
       one_time_keyboard: true,
@@ -21,7 +9,19 @@ const respond = (chat, bot) => {
     },
   }
   const message = 'Hi there!'
-  bot.sendMessage(chat.telegramChatId, message, opts)
+  bot.sendMessage(chat.id, message, opts)
 }
 
-export default { change, respond }
+export default (chat, message) => {
+  if (message.text === 'New invoice') {
+    chat.state = 'invoice'
+    chat.currentQuestion = 0
+    chat.invoice = new Invoice()
+    chat.respond(invoiceResponder)
+
+    return chat
+  }
+
+  chat.respond(menuResponder)
+  return chat
+}

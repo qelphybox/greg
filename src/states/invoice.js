@@ -1,26 +1,38 @@
-import { questions } from "../Invoice"
-import cloneDeep from "lodash.clonedeep"
+import Invoice, { questions } from "../models/Invoice"
 
-const format = (text,) => {
+export const invoiceResponder = (bot, chat) => {
+  const question = questions[chat.currentQuestion]
+  bot.sendMessage(chat.id, question)
+}
+
+export const documentResponder = (bot, chat) => {
+  const params = chat.invoice.toParams()
+}
+
+export const invalidResponder = (bot, chat) => {
 
 }
 
-const change = (chat, { text }) => {
-  const newChat = cloneDeep(chat)
-  if (newChat.isLastQuestion()) {
-      
-      
-  }
-  const field = questions[chat.currentQuestion][0]
-  newChat.invoice[field] = format(text)
+const validate = (questionKey, value) => {
+  Invoice.validate(questionKey, value)
+}
+
+export default (chat, { text }) => {
+  const value = text.trim()
+  const error = validate(questionKey, value)
+
+  // const error = validate()
+  // if (error) {
+  //   newChat.errMessage = error
+  //   return newChat
+  // }
+
+
+  // if (newChat.isLastQuestion()) {
+  //   newChat.getDocument()
+  //   newChat.state = 'document'
+  // }
+
   newChat.currentQuestion += 1
   return newChat
 }
-
-const respond = (chat, bot) => {
-  const question = questions[chat.currentQuestion][1];
-  const opts = 
-  bot.sendMessage(chat.telegramChatId, question, opts)
-}
-
-export default { change, respond }

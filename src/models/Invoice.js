@@ -13,7 +13,25 @@ export const questions = [
   ['terms', 'Enter the terms and conditions']
 ]
 
+const dateValidator = (value) => {
+  if (Date.parse(value)) {
+
+  }
+  return 'Can not parse this date'
+}
+
 export default class {
+  static validate(questionKey, value) {
+    const question = questions[questionKey][0]
+
+    switch (question) {
+      case 'date':
+      case 'due_date':
+        return dateValidator(value)
+
+    }
+  }
+
   constructor() {
     this.from = null
     this.to = null
@@ -33,5 +51,20 @@ export default class {
     item.quantity = quantity
     item.unit_cost = unit_cost
     this.items = [...this.items, item]
+  }
+
+  toParams() {
+    return {
+      from: this.from,
+      to: this.to,
+      logo: this.logo,
+      date: this.date,
+      due_date: this.due_date,
+      notes: this.notes,
+      terms: this.terms,
+      number: this.number,
+      currency: this.currency,
+      items: this.items.map(item => item.toParams())
+    }
   }
 }
