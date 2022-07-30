@@ -1,2 +1,2 @@
 bot:
-  npm start
+	npm start

@@ -11,3 +11,9 @@ s:
 
 install:
 	npm i
+
+heroku-add-remote:
+	heroku git:remote -a greg-invoicer
+
+heroku-deploy!:
+	git push heroku HEAD:main
