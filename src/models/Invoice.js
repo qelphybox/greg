@@ -1,21 +1,24 @@
 import Item from './Item'
+// question = keyword[0] question[1] requirement[2]
 export const questions = [
-  ['from', 'Enter the name of your company'],
-  ['to', "Enter the name of your Client's company"],
-  ['logo', 'Enter the url of your logo'],
+  ['from', 'Enter the name of your company', 'required'],
+  ['to', "Enter the name of your Client's company", 'required'],
+  ['date', 'Enter the date of your invoice\nExample: Jan 29, 2020', 'required'],
+  ['due_date', 'Enter the due date of your invoice', 'optional'],
+  ['logo', 'Enter the url of your logo', 'optional'],
+  ['number', 'Enter the number of your invoice', 'optional'],
   [
-    'date',
-    'Enter the date of your invoice\nExample: 2020-01-29 / Jan 29, 2020',
+    'currency',
+    'Enter the currency of your invoice\nExample: USD / EUR',
+    'optional',
   ],
-  ['due_date', 'Enter the due date of your invoice'],
-  ['number', 'Enter the number of your invoice'],
-  ['currency', 'Enter the currency of your invoice\nExample: USD / EUR'],
   [
     'items',
     'Enter the description of the item\nFormat: <item name>, <quantity>, unit_cost',
+    'required',
   ],
-  ['notes', 'Enter your notes'],
-  ['terms', 'Enter the terms and conditions'],
+  ['notes', 'Enter your notes', 'optional'],
+  ['terms', 'Enter the terms and conditions', 'optional'],
 ]
 
 const dateValidator = (value) => {
