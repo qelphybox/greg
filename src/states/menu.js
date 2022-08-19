@@ -1,14 +1,10 @@
 import Invoice from '../models/Invoice'
 import { invoiceResponder } from './invoice'
+import { getMenuOpts } from '../opts'
 
 export const menuResponder = (bot, chat) => {
-  const opts = {
-    reply_markup: {
-      one_time_keyboard: true,
-      keyboard: [['New invoice']],
-    },
-  }
   const message = 'Hi there!'
+  const opts = getMenuOpts()
   bot.sendMessage(chat.id, message, opts)
 }
 
